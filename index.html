@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="theme-color" content="#030308"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>PHI φ</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#030308;color:#E8E8FF;font-family:'Space Mono',monospace;overscroll-behavior:none;-webkit-tap-highlight-color:transparent;}
+input[type=range]{-webkit-appearance:none;width:100%;height:3px;border-radius:2px;outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#00F5A0;cursor:pointer;}
+input[type=time],input[type=text],textarea{outline:none;-webkit-appearance:none;}
+::-webkit-scrollbar{width:2px;}::-webkit-scrollbar-thumb{background:#1C1C38;border-radius:2px;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@keyframes slideUp{from{opacity:0;transform:translateY(100%);}to{opacity:1;transform:translateY(0);}}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes breatheIn{from{transform:scale(0.3);}to{transform:scale(1);}}
+@keyframes breatheOut{from{transform:scale(1);}to{transform:scale(0.3);}}
+.fade-in{animation:fadeIn .3s ease;}
+.slide-up{animation:slideUp .35s cubic-bezier(0.34,1.56,0.64,1);}
+#root{min-height:100vh;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useEffect,useRef}=React;
+
+// ── CONSTANTS ───────────────────────────────────────
+const FIB=[1,1,2,3,5,8,13];
+const C={bg:"#030308",s1:"#080810",s2:"#0D0D1E",card:"#101020",border:"#181830",mint:"#00F5A0",purple:"#7C3AFF",pink:"#FF2D78",gold:"#FFB830",cyan:"#00CFFF",muted:"#44445A",text:"#E8E8FF"};
+
+const LEVELS=[
+  {num:1,name:"Supervivencia",short:"Miedo",color:"#FF2D78"},
+  {num:2,name:"Emocional",short:"Tribu",color:"#FF6B35"},
+  {num:3,name:"Ego / Poder",short:"Ambición",color:"#FFB830"},
+  {num:4,name:"Razón",short:"Análisis",color:"#00CFFF"},
+  {num:5,name:"Amor",short:"Servicio",color:"#00F5A0"},
+  {num:6,name:"Intuición",short:"Visión",color:"#9B6AFF"},
+  {num:7,name:"Unidad",short:"Despertar",color:"#FFFFFF"},
+];
+const LEVEL_JUMPS={1:"del miedo a la conexión",2:"de la dependencia a la acción",3:"del ego a la lógica",4:"del análisis al disfrute",5:"del amor a la visión",6:"de la intuición a la unidad"};
+const INIT_DOMAINS=[
+  {id:"musica",name:"Música",icon:"♪",level:5,color:"#00F5A0"},
+  {id:"trading",name:"Trading",icon:"◈",level:5,color:"#FFB830"},
+  {id:"espiritu",name:"Espíritu",icon:"◉",level:7,color:"#FF2D78"},
+  {id:"mente",name:"Mente",icon:"◎",level:6,color:"#9B6AFF"},
+  {id:"cuerpo",name:"Cuerpo",icon:"◊",level:7,color:"#00CFFF"},
+  {id:"relaciones",name:"Relaciones",icon:"∞",level:7,color:"#FF6B35"},
+  {id:"negocio",name:"Negocio",icon:"⬡",level:1,color:"#FFB830"},
+];
+const VAGO_DATA={
+  seguro:{label:"SEGURO",icon:"◉",color:"#00F5A0",desc:"Conectado, creativo, presente.",tools:["Crea sin filtros — ventana de máximo flujo","Decide — tu mente racional está online","Conecta — tu energía es magnética"],freq:"528Hz · Amor",tip:"Aprovecha este estado. Dura máximo 90 min."},
+  alarma:{label:"ALARMA",icon:"⚡",color:"#FFB830",desc:"Sistema en alerta. Real o percibida.",tools:["4-7-8: inhala 4s, retén 7s, exhala 8s (x4)","Frío en muñecas o nuca — activa el nervio vago","Tararear 2 min — vibración directa al vago"],freq:"396Hz · Liberación",tip:"No decidas en alarma. Primero regula."},
+  apagado:{label:"APAGADO",icon:"◌",color:"#FF2D78",desc:"Shutdown. Sistema desconectado.",tools:["Movimiento suave — camina, sacude las manos","Luz solar 5 min — resetea el ritmo circadiano","Mensaje de voz a alguien de confianza"],freq:"963Hz · Activación",tip:"El cuerpo necesita movimiento antes que pensamiento."},
+};
+
+// Breathing protocols
+const BREATH_PROTOCOLS=[
+  {id:"coherencia",name:"COHERENCIA",badge:"5.5/min",desc:"La frecuencia exacta donde corazón y cerebro sincronizan. Base de todo.",color:"#00F5A0",for:"Mantenimiento · Antes de crear · Cada mañana",durations:[3,5,7,10],
+   phases:[{name:"INHALA",s:5.5,dir:1},{name:"EXHALA",s:5.5,dir:-1}]},
+  {id:"478",name:"4-7-8",badge:"Calma rápida",desc:"El protocolo más rápido para desactivar la alarma. Activa el nervio vago en 4 ciclos.",color:"#FFB830",for:"Nervio vago en alarma · Ansiedad · Antes de negociar",durations:[3,5],
+   phases:[{name:"INHALA",s:4,dir:1},{name:"RETÉN",s:7,dir:0},{name:"EXHALA",s:8,dir:-1}]},
+  {id:"box",name:"BOX",badge:"4-4-4-4",desc:"El protocolo de los Navy SEALs. Claridad y control bajo presión extrema.",color:"#00CFFF",for:"Decisiones importantes · Rendimiento · Presión",durations:[4,6,8],
+   phases:[{name:"INHALA",s:4,dir:1},{name:"RETÉN",s:4,dir:0},{name:"EXHALA",s:4,dir:-1},{name:"RETÉN",s:4,dir:0}]},
+  {id:"activante",name:"FUEGO",badge:"Activante",desc:"Para salir del shutdown. Respiraciones cortas rápidas reactivan el sistema nervioso central.",color:"#FF2D78",for:"Nervio vago apagado · Sin energía · Bloqueo creativo",durations:[2,3],
+   phases:[{name:"INHALA",s:1,dir:1},{name:"EXHALA",s:1,dir:-1}],rapid:true,rapidCycles:30},
+];
+
+const MOON_PHASES=[
+  {max:1.85,name:"Luna Nueva",icon:"🌑",energy:"Semilla",color:"#555577",influence:"Introspección. Planta intenciones.",domains:["espiritu","mente"]},
+  {max:7.38,name:"Creciente",icon:"🌒",energy:"Impulso",color:"#9B6AFF",influence:"Inicia. El impulso es real.",domains:["negocio","musica"]},
+  {max:9.22,name:"Cuarto Creciente",icon:"🌓",energy:"Acción",color:"#7C3AFF",influence:"Decide y ejecuta sin dudar.",domains:["negocio","trading"]},
+  {max:14.77,name:"Gibosa Creciente",icon:"🌔",energy:"Expansión",color:"#00CFFF",influence:"Máximo impulso creativo.",domains:["musica","relaciones"]},
+  {max:16.61,name:"Luna Llena",icon:"🌕",energy:"Culminación",color:"#FFB830",influence:"Emociones al pico. Siente.",domains:["cuerpo","relaciones","espiritu"]},
+  {max:22.15,name:"Gibosa Menguante",icon:"🌖",energy:"Cosecha",color:"#FF6B35",influence:"Analiza. Recoge frutos.",domains:["trading","mente"]},
+  {max:23.99,name:"Cuarto Menguante",icon:"🌗",energy:"Soltar",color:"#FF2D78",influence:"Cierra ciclos. Limpia.",domains:["negocio","mente"]},
+  {max:29.53,name:"Menguante",icon:"🌘",energy:"Integración",color:"#333355",influence:"Descanso profundo.",domains:["espiritu","cuerpo"]},
+];
+
+// ── UTILS ───────────────────────────────────────────
+const getMoon=()=>{
+  const ref=new Date('2024-01-11T11:57:00Z');
+  const phase=(((new Date()-ref)/86400000%29.530589)+29.530589)%29.530589;
+  const m=MOON_PHASES.find(x=>phase<x.max)||MOON_PHASES[7];
+  return{...m,phase:Math.round(phase*10)/10,pct:Math.round((phase/29.530589)*100)};
+};
+const getUltradian=wake=>{
+  if(!wake)return null;
+  const[h,m]=wake.split(':').map(Number);
+  const now=new Date(),w=new Date(now);w.setHours(h,m,0,0);
+  const min=(now-w)/60000;
+  if(min<0||min>960)return null;
+  const pos=min%90;const isPeak=pos<75;
+  return{isPeak,remaining:Math.round(isPeak?75-pos:90-pos),cycle:Math.floor(min/90)+1,pct:Math.round(isPeak?(pos/75)*100:((pos-75)/15)*100)};
+};
+
+// ── BREATHING CIRCLE ────────────────────────────────
+function BreathCircle({scale,color,phase,label}){
+  const sz=200,cx=100,minR=18,maxR=72;
+  const r=minR+(maxR-minR)*scale;
+  const circ=2*Math.PI*maxR;
+  return(
+    <div style={{position:'relative',width:sz,height:sz,margin:'0 auto'}}>
+      <svg width={sz} height={sz} style={{position:'absolute',top:0,left:0}}>
+        {[0.33,0.66,1].map((s,i)=><circle key={i} cx={cx} cy={cx} r={minR+(maxR-minR)*s} fill="none" stroke={`${color}${i===2?'25':'0F'}`} strokeWidth={i===2?1:.5} strokeDasharray={i<2?"3,3":"none"}/>)}
+        <circle cx={cx} cy={cx} r={maxR} fill="none" stroke={color} strokeWidth="1.5" opacity=".4"
+          strokeDasharray={`${circ*scale} ${circ*(1-scale)}`} strokeLinecap="round"
+          transform={`rotate(-90 ${cx} ${cx})`}/>
+      </svg>
+      <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',
+        width:r*2,height:r*2,borderRadius:'50%',
+        background:`radial-gradient(circle at 40% 35%, ${color}55, ${color}15)`,
+        border:`1px solid ${color}60`,
+        boxShadow:`0 0 ${20+scale*40}px ${color}${Math.round(20+scale*30).toString(16)}`,
+        transition:'width .08s ease,height .08s ease'}}/>
+      <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',
+        textAlign:'center',pointerEvents:'none',width:'100%'}}>
+        <div style={{fontFamily:"'Syne',sans-serif",fontSize:12,fontWeight:800,color,letterSpacing:2,opacity:.8}}>{label}</div>
+      </div>
+    </div>
+  );
+}
+
+// ── BREATH SESSION OVERLAY ──────────────────────────
+// Solfeggio frequencies
+const SOLFEGGIO=[
+  {hz:0,name:'SIN FRECUENCIA',desc:'Solo respiracion',color:'#44445A'},
+  {hz:528,name:'528 Hz',desc:'Amor · Reparacion ADN',color:'#00F5A0',recommended:true},
+  {hz:432,name:'432 Hz',desc:'Resonancia natural · Calma profunda',color:'#00CFFF'},
+  {hz:396,name:'396 Hz',desc:'Liberacion del miedo',color:'#FFB830'},
+  {hz:963,name:'963 Hz',desc:'Consciencia superior',color:'#9B6AFF'},
+  {hz:285,name:'285 Hz',desc:'Regeneracion celular · Sanacion',color:'#FF6B35'},
+];
+
+function BreathSession({protocol,onClose,onComplete}){
+  const[phase,setPhase]=useState('setup');// setup|active|complete
+  const[duration,setDuration]=useState(protocol.durations[1]||5);
+  const[elapsed,setElapsed]=useState(0);
+  const[bCount,setBCount]=useState(0);
+  const[phaseIdx,setPhaseIdx]=useState(0);
+  const[phaseElapsed,setPhaseElapsed]=useState(0);
+  const[bScale,setBScale]=useState(0.3);
+  const[rapidCount,setRapidCount]=useState(0);
+  const[selectedFreq,setSelectedFreq]=useState(protocol.id==='coherencia'?528:0);
+  const[freqActive,setFreqActive]=useState(false);
+  const timerRef=useRef(null);
+  const startRef=useRef(null);
+  const audioRef=useRef(null);
+  const gainRef=useRef(null);
+  const ctxRef=useRef(null);
+
+  const phases=protocol.phases;
+  const totalS=duration*60;
+  const cycleS=phases.reduce((s,p)=>s+p.s,0);
+
+  useEffect(()=>{
+    if(phase!=='active')return;
+    startRef.current=Date.now()-elapsed*1000;
+    timerRef.current=setInterval(()=>{
+      const el=(Date.now()-startRef.current)/1000;
+      setElapsed(el);
+      if(el>=totalS){clearInterval(timerRef.current);setPhase('complete');return;}
+      const posInCycle=el%cycleS;
+      let acc=0;
+      for(let i=0;i<phases.length;i++){
+        if(posInCycle<acc+phases[i].s){
+          const pPct=(posInCycle-acc)/phases[i].s;
+          const p=phases[i];
+          setPhaseIdx(i);
+          setPhaseElapsed(posInCycle-acc);
+          setBScale(p.dir===1?0.3+pPct*0.7:p.dir===-1?1.0-pPct*0.7:1.0);
+          break;
+        }
+        acc+=phases[i].s;
+      }
+      setBCount(Math.floor(el/cycleS)+1);
+      if(protocol.rapid)setRapidCount(Math.floor((el%60)/cycleS));
+    },50);
+    return()=>clearInterval(timerRef.current);
+  },[phase]);
+
+  // Audio functions
+  const startFreq=()=>{
+    if(!selectedFreq||freqActive)return;
+    try{
+      const ctx=new(window.AudioContext||window.webkitAudioContext)();
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.connect(gain);gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(selectedFreq,ctx.currentTime);
+      osc.type='sine';
+      gain.gain.setValueAtTime(0,ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.08,ctx.currentTime+1.5);
+      osc.start();
+      ctxRef.current=ctx;audioRef.current=osc;gainRef.current=gain;
+      setFreqActive(true);
+    }catch(e){console.log('Audio error',e);}
+  };
+
+  const stopFreq=()=>{
+    if(!freqActive||!gainRef.current)return;
+    try{
+      gainRef.current.gain.linearRampToValueAtTime(0,ctxRef.current.currentTime+1);
+      setTimeout(()=>{try{audioRef.current.stop();ctxRef.current.close();}catch(e){}},1100);
+      setFreqActive(false);
+    }catch(e){}
+  };
+
+  const toggleFreq=()=>{freqActive?stopFreq():startFreq();};
+
+  useEffect(()=>{
+    if(phase==='complete'||phase==='setup'){stopFreq();}
+  },[phase]);
+
+  const curPhase=phases[phaseIdx]||phases[0];
+  const remaining=Math.max(0,totalS-elapsed);
+  const mins=Math.floor(remaining/60);
+  const secs=Math.floor(remaining%60);
+
+  return(
+    <div style={{position:'fixed',inset:0,background:C.bg,zIndex:200,display:'flex',flexDirection:'column'}} className="slide-up">
+      {/* Header */}
+      <div style={{padding:'16px 20px',display:'flex',justifyContent:'space-between',alignItems:'center',borderBottom:`1px solid ${C.border}`}}>
+        <div>
+          <span style={{fontFamily:"'Syne',sans-serif",fontSize:18,fontWeight:800,color:protocol.color}}>{protocol.name}</span>
+          <span style={{fontSize:10,color:C.muted,marginLeft:10}}>{protocol.badge}</span>
+        </div>
+        <button onClick={onClose} style={{background:'transparent',border:`1px solid ${C.border}`,borderRadius:6,padding:'6px 12px',color:C.muted,fontFamily:"'Space Mono',monospace",fontSize:10,cursor:'pointer'}}>✕ SALIR</button>
+      </div>
+
+      <div style={{flex:1,overflowY:'auto',padding:'0 20px'}}>
+
+        {/* SETUP */}
+        {phase==='setup'&&(
+          <div className="fade-in" style={{paddingTop:24}}>
+            <div style={{background:C.card,border:`1px solid ${protocol.color}20`,borderRadius:12,padding:16,marginBottom:20}}>
+              <div style={{fontSize:12,color:'#BCBCD8',lineHeight:1.8,marginBottom:12}}>{protocol.desc}</div>
+              <div style={{fontSize:10,color:protocol.color,letterSpacing:'.08em'}}>→ {protocol.for}</div>
+            </div>
+            {/* Phase diagram */}
+            <div style={{marginBottom:24}}>
+              <div style={{fontSize:9,color:C.muted,letterSpacing:'.15em',marginBottom:10}}>CICLO DE RESPIRACIÓN</div>
+              <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                {protocol.phases.map((p,i)=>(
+                  <div key={i} style={{display:'flex',alignItems:'center',gap:6,flex:p.s}}>
+                    <div style={{flex:1,background:`${protocol.color}15`,border:`1px solid ${protocol.color}30`,borderRadius:6,padding:'8px 4px',textAlign:'center'}}>
+                      <div style={{fontSize:9,color:protocol.color,fontWeight:700,letterSpacing:'.06em'}}>{p.name}</div>
+                      <div style={{fontFamily:"'Syne',sans-serif",fontSize:16,fontWeight:800,color:protocol.color,marginTop:2}}>{p.s}s</div>
+                    </div>
+                    {i<protocol.phases.length-1&&<div style={{fontSize:12,color:C.muted}}>→</div>}
+                  </div>
+                ))}
+              </div>
+              {protocol.rapid&&<div style={{fontSize:10,color:C.muted,marginTop:8,textAlign:'center'}}>30 ciclos rápidos por ronda</div>}
+            </div>
+            {/* Duration */}
+            <div style={{fontSize:9,color:C.muted,letterSpacing:'.15em',marginBottom:10}}>DURACIÓN</div>
+            <div style={{display:'flex',gap:8,marginBottom:28}}>
+              {protocol.durations.map(d=>(
+                <button key={d} onClick={()=>setDuration(d)} style={{flex:1,padding:'12px 6px',borderRadius:8,cursor:'pointer',fontFamily:"'Space Mono',monospace",fontWeight:700,textAlign:'center',border:`1px solid ${duration===d?protocol.color:C.border}`,background:duration===d?`${protocol.color}15`:C.card,color:duration===d?protocol.color:C.muted}}>
+                  <div style={{fontFamily:"'Syne',sans-serif",fontSize:20,fontWeight:800}}>{d}</div>
+                  <div style={{fontSize:9,marginTop:2}}>MIN</div>
+                </button>
+              ))}
+            </div>
+            {/* Frequency selector */}
+            <div style={{marginBottom:20}}>
+              <div style={{fontSize:9,color:C.muted,letterSpacing:'.15em',marginBottom:10}}>FRECUENCIA SOLFEGGIO <span style={{color:protocol.color}}>(OPCIONAL)</span></div>
+              <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                {SOLFEGGIO.map(f=>(
+                  <button key={f.hz} onClick={()=>setSelectedFreq(f.hz)}
+                    style={{background:selectedFreq===f.hz?`${f.color}15`:C.card,border:`1px solid ${selectedFreq===f.hz?f.color:C.border}`,borderRadius:8,padding:'9px 12px',cursor:'pointer',textAlign:'left',display:'flex',alignItems:'center',gap:10,transition:'all .15s'}}>
+                    <div style={{width:8,height:8,borderRadius:'50%',background:selectedFreq===f.hz?f.color:C.border,flexShrink:0}}/>
+                    <div style={{flex:1,display:'flex',alignItems:'center',gap:8}}>
+                      <span style={{fontSize:11,fontWeight:700,color:selectedFreq===f.hz?f.color:C.muted,fontFamily:"'Space Mono',monospace"}}>{f.name}</span>
+                      <span style={{fontSize:9,color:C.muted}}>{f.desc}</span>
+                    </div>
+                    {f.recommended&&<span style={{fontSize:8,color:f.color,border:`1px solid ${f.color}40`,borderRadius:3,padding:'1px 5px'}}>RECOMENDADA</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button onClick={()=>setPhase('active')} style={{width:'100%',background:`linear-gradient(135deg,${protocol.color},${protocol.color}99)`,color:'#030308',border:'none',borderRadius:10,padding:14,fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700,letterSpacing:'.1em',cursor:'pointer'}}>
+              INICIAR {duration} MIN{selectedFreq?' + '+selectedFreq+' Hz':''}
+            </button>
+          </div>
+        )}
+
+        {/* ACTIVE */}
+        {phase==='active'&&(
+          <div style={{paddingTop:20}}>
+            {/* Timer bar */}
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+              <div style={{textAlign:'center'}}>
+                <div style={{fontFamily:"'Syne',sans-serif",fontSize:26,fontWeight:800,color:C.gold,lineHeight:1}}>{mins}:{secs.toString().padStart(2,'0')}</div>
+                <div style={{fontSize:8,color:C.muted,marginTop:2,letterSpacing:'.1em'}}>RESTANTE</div>
+              </div>
+              <div style={{flex:1,margin:'0 14px',height:2,background:C.border,borderRadius:2,overflow:'hidden'}}>
+                <div style={{height:'100%',width:`${Math.round((elapsed/totalS)*100)}%`,background:`linear-gradient(90deg,${C.purple},${protocol.color})`,transition:'width .5s'}}/>
+              </div>
+              <div style={{textAlign:'center'}}>
+                <div style={{fontFamily:"'Syne',sans-serif",fontSize:26,fontWeight:800,color:protocol.color,lineHeight:1}}>{bCount}</div>
+                <div style={{fontSize:8,color:C.muted,marginTop:2,letterSpacing:'.1em'}}>CICLOS</div>
+              </div>
+            </div>
+
+            {/* Circle */}
+            <BreathCircle scale={bScale} color={protocol.color} phase={curPhase.name} label=""/>
+
+            {/* Phase label */}
+            <div style={{textAlign:'center',marginTop:20,marginBottom:16}}>
+              <div style={{fontFamily:"'Syne',sans-serif",fontSize:24,fontWeight:800,color:protocol.color,letterSpacing:'.1em',transition:'color .3s'}}>{curPhase.name}</div>
+              <div style={{fontSize:10,color:C.muted,marginTop:6}}>{curPhase.s} segundos</div>
+              {protocol.rapid&&<div style={{fontSize:11,color:protocol.color,marginTop:6}}>Ciclo rápido {rapidCount}/30</div>}
+            </div>
+
+            {/* Phase progress dots */}
+            <div style={{display:'flex',justifyContent:'center',gap:6,marginBottom:20}}>
+              {protocol.phases.map((p,i)=>(
+                <div key={i} style={{display:'flex',alignItems:'center',gap:4}}>
+                  <div style={{width:6,height:6,borderRadius:'50%',background:i===phaseIdx?protocol.color:`${protocol.color}30`,transition:'background .2s'}}/>
+                  <div style={{fontSize:8,color:i===phaseIdx?protocol.color:C.muted}}>{p.name}</div>
+                </div>
+              ))}
+            </div>
+
+            {selectedFreq>0&&(
+              <button onClick={toggleFreq} style={{width:'100%',background:freqActive?`${SOLFEGGIO.find(f=>f.hz===selectedFreq)?.color||C.mint}15`:'transparent',border:`1px solid ${freqActive?SOLFEGGIO.find(f=>f.hz===selectedFreq)?.color||C.mint:C.border}`,borderRadius:8,padding:'10px',fontFamily:"'Space Mono',monospace",fontSize:10,fontWeight:700,cursor:'pointer',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'center',gap:8,color:freqActive?SOLFEGGIO.find(f=>f.hz===selectedFreq)?.color||C.mint:C.muted,transition:'all .3s'}}>
+                <span style={{display:'inline-block',animation:freqActive?'pulse-anim 2s ease infinite':'none'}}>◎</span>
+                {freqActive?`${selectedFreq} Hz ACTIVO — TOCA PARA PAUSAR`:`ACTIVAR ${selectedFreq} Hz`}
+              </button>
+            )}
+            <button onClick={()=>{clearInterval(timerRef.current);stopFreq();setPhase('setup');setElapsed(0);}} style={{width:'100%',background:'transparent',color:C.muted,border:`1px solid ${C.border}`,borderRadius:8,padding:10,fontFamily:"'Space Mono',monospace",fontSize:10,cursor:'pointer'}}>PAUSAR</button>
+          </div>
+        )}
+
+        {/* COMPLETE */}
+        {phase==='complete'&&(
+          <div className="fade-in" style={{paddingTop:30,textAlign:'center'}}>
+            <div style={{fontSize:48,marginBottom:12}}>φ</div>
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800,color:protocol.color,marginBottom:6}}>COMPLETADO</div>
+            <div style={{fontSize:11,color:C.muted,marginBottom:28}}>Sistema nervioso recalibrado</div>
+            <div style={{display:'flex',gap:8,marginBottom:24}}>
+              {[["CICLOS",bCount,protocol.color],["MINUTOS",duration,C.gold],["resp/min",protocol.id==='coherencia'?5.5:protocol.id==='478'?3.2:protocol.id==='box'?3.75:30,C.purple]].map(([l,v,col])=>(
+                <div key={l} style={{flex:1,background:C.card,border:`1px solid ${col}30`,borderRadius:10,padding:14}}>
+                  <div style={{fontFamily:"'Syne',sans-serif",fontSize:24,fontWeight:800,color:col}}>{v}</div>
+                  <div style={{fontSize:8,color:C.muted,marginTop:3,letterSpacing:'.08em'}}>{l}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{background:C.card,border:`1px solid ${protocol.color}20`,borderRadius:10,padding:14,marginBottom:20,textAlign:'left'}}>
+              <div style={{fontSize:9,color:protocol.color,fontWeight:700,marginBottom:8,letterSpacing:'.1em'}}>→ AHORA</div>
+              {protocol.id==='coherencia'&&["Ventana de 20-30 min de máxima claridad","Si tienes algo importante — este es el momento","Tu cortisol acaba de bajar"].map((t,i)=><div key={i} style={{fontSize:11,color:'#AAAAC0',lineHeight:1.7}}>· {t}</div>)}
+              {protocol.id==='478'&&["El nervio vago está activo y regulado","Puedes tomar decisiones que antes evitabas","Repite en 4 horas si sientes la alarma volver"].map((t,i)=><div key={i} style={{fontSize:11,color:'#AAAAC0',lineHeight:1.7}}>· {t}</div>)}
+              {protocol.id==='box'&&["Modo de alto rendimiento activado","Toma la decisión que llevas aplazando","Este estado dura 45-60 minutos"].map((t,i)=><div key={i} style={{fontSize:11,color:'#AAAAC0',lineHeight:1.7}}>· {t}</div>)}
+              {protocol.id==='activante'&&["Sistema nervioso despertado","Mueve el cuerpo los próximos 5 min","Bebe agua — el proceso deshidrata levemente"].map((t,i)=><div key={i} style={{fontSize:11,color:'#AAAAC0',lineHeight:1.7}}>· {t}</div>)}
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={()=>{setPhase('setup');setElapsed(0);setBCount(0);}} style={{flex:1,background:C.card,color:C.muted,border:`1px solid ${C.border}`,borderRadius:8,padding:10,fontFamily:"'Space Mono',monospace",fontSize:10,cursor:'pointer'}}>REPETIR</button>
+              <button onClick={onClose} style={{flex:1,background:protocol.color,color:'#030308',border:'none',borderRadius:8,padding:10,fontFamily:"'Space Mono',monospace",fontSize:10,fontWeight:700,cursor:'pointer'}}>LISTO ✓</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── DIÁLOGO SESSION ─────────────────────────────────
+function DialogoSession({domains,onClose}){
+  const[phase,setPhase]=useState('setup');
+  const[domainId,setDomainId]=useState(domains[0].id);
+  const[duration,setDuration]=useState(7);
+  const[elapsed,setElapsed]=useState(0);
+  const[text,setText]=useState('');
+  const[analysis,setAnalysis]=useState('');
+  const[analyzing,setAnalyzing]=useState(false);
+  const timerRef=useRef(null);
+  const textRef=useRef(null);
+  const col='#9B6AFF';
+  const dom=domains.find(d=>d.id===domainId);
+  const totalS=duration*60;
+  const remaining=Math.max(0,totalS-elapsed);
+  const mins=Math.floor(remaining/60);
+  const secs=Math.floor(remaining%60);
+  const words=text.trim()?text.trim().split(/\s+/).length:0;
+  const pctDone=Math.round((elapsed/totalS)*100);
+
+  useEffect(()=>{
+    if(phase!=='active')return;
+    const start=Date.now()-elapsed*1000;
+    timerRef.current=setInterval(()=>{
+      const el=(Date.now()-start)/1000;
+      setElapsed(el);
+      if(el>=totalS){clearInterval(timerRef.current);setPhase('analyze');}
+    },200);
+    if(textRef.current)textRef.current.focus();
+    return()=>clearInterval(timerRef.current);
+  },[phase]);
+
+  const handleKey=e=>{
+    if(e.key==='Backspace'||e.key==='Delete'){e.preventDefault();}
+  };
+
+  const analyze=async()=>{
+    setAnalyzing(true);setPhase('complete');
+    const lvl=domains.find(d=>d.id===domainId)?.level||1;
+    const msg=`Esta persona escribió ${duration} minutos sin parar sobre su dominio de "${dom?.name}" (actualmente en nivel ${lvl} de conciencia: ${['Supervivencia','Emocional','Ego/Poder','Razón','Amor','Intuición','Unidad'][lvl-1]}). Sin editar, sin filtro. Esto es lo que salió:\n\n"${text}"\n\nAnaliza en profundidad: qué patrones aparecen, qué está bloqueado, qué quiere emerger, qué dice el subconsciente que la mente racional evita. Sé específico, directo, sin suavizar. Máximo 5 líneas.`;
+    try{
+      const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,system:'Eres un intérprete del subconsciente. Analizas escritura automática sin filtro para revelar lo que la persona no puede ver conscientemente. Directo, profundo, sin eufemismos. Español.',messages:[{role:'user',content:msg}]})});
+      const data=await res.json();
+      setAnalysis(data.content?.[0]?.text||'Sin análisis.');
+    }catch{setAnalysis('Error de conexión.');}
+    setAnalyzing(false);
+  };
+
+  return(
+    <div style={{position:'fixed',inset:0,background:C.bg,zIndex:200,display:'flex',flexDirection:'column'}} className="slide-up">
+      <div style={{padding:'16px 20px',display:'flex',justifyContent:'space-between',alignItems:'center',borderBottom:`1px solid ${C.border}`}}>
+        <div>
+          <span style={{fontFamily:"'Syne',sans-serif",fontSize:18,fontWeight:800,color:col}}>DIÁLOGO</span>
+          <span style={{fontSize:10,color:C.muted,marginLeft:10}}>Escritura automática</span>
+        </div>
+        <button onClick={onClose} style={{background:'transparent',border:`1px solid ${C.border}`,borderRadius:6,padding:'6px 12px',color:C.muted,fontFamily:"'Space Mono',monospace",fontSize:10,cursor:'pointer'}}>✕ SALIR</button>
+      </div>
+
+      <div style={{flex:1,overflowY:'auto',padding:'0 20px'}}>
+
+        {/* SETUP */}
+        {phase==='setup'&&(
+          <div className="fade-in" style={{paddingTop:24}}>
+            <div style={{background:C.card,border:`1px solid ${col}20`,borderRadius:12,padding:16,marginBottom:20}}>
+              <div style={{fontSize:9,color:col,fontWeight:700,letterSpacing:'.15em',marginBottom:12}}>CÓMO FUNCIONA</div>
+              {[['◉','Sin parar','El timer arranca y no se detiene. No importa si no sabes qué escribir — escribe eso mismo.'],['◈','Sin borrar','El backspace está bloqueado. Lo que sale, sale. Ahí está la información real.'],['◎','Sin filtro','No editas, no corriges, no buscas coherencia. La mente racional se cansa en el minuto 3.'],['◊','El minuto 6','Lo que sale en los últimos 2 minutos es lo que el subconsciente tenía guardado.']].map(([icon,title,desc])=>(
+                <div key={title} style={{display:'flex',gap:12,marginBottom:12}}>
+                  <span style={{color:col,fontSize:11,marginTop:2,flexShrink:0}}>{icon}</span>
+                  <div><div style={{fontSize:10,fontWeight:700,color:C.text,marginBottom:2}}>{title}</div><div style={{fontSize:10,color:C.muted,lineHeight:1.6}}>{desc}</div></div>
+                </div>
+              ))}
+            </div>
+            <div style={{fontSize:9,color:C.muted,letterSpacing:'.15em',marginBottom:10}}>DOMINIO A EXPLORAR</div>
+            <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:20}}>
+              {domains.map(d=><button key={d.id} onClick={()=>setDomainId(d.id)} style={{padding:'7px 12px',borderRadius:6,cursor:'pointer',fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700,border:`1px solid ${domainId===d.id?d.color:C.border}`,background:domainId===d.id?`${d.color}20`:C.card,color:domainId===d.id?d.color:C.muted}}>{d.icon} {d.name.toUpperCase()}</button>)}
+            </div>
+            <div style={{fontSize:9,color:C.muted,letterSpacing:'.15em',marginBottom:10}}>DURACIÓN</div>
+            <div style={{display:'flex',gap:8,marginBottom:28}}>
+              {[5,7,10].map(m=><button key={m} onClick={()=>setDuration(m)} style={{flex:1,padding:'12px 6px',borderRadius:8,cursor:'pointer',fontFamily:"'Space Mono',monospace",fontWeight:700,textAlign:'center',border:`1px solid ${duration===m?col:C.border}`,background:duration===m?`${col}15`:C.card,color:duration===m?col:C.muted}}>
+                <div style={{fontFamily:"'Syne',sans-serif",fontSize:20,fontWeight:800}}>{m}</div>
+                <div style={{fontSize:9,marginTop:2}}>MIN</div>
+              </button>)}
+            </div>
+            <button onClick={()=>setPhase('active')} style={{width:'100%',background:`linear-gradient(135deg,${col},${col}88)`,color:'#fff',border:'none',borderRadius:10,padding:14,fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700,letterSpacing:'.1em',cursor:'pointer'}}>
+              INICIAR {duration} MIN — SIN VUELTA ATRÁS
+            </button>
+          </div>
+        )}
+
+        {/* ACTIVE */}
+        {phase==='active'&&(
+          <div style={{paddingTop:16}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+              <div style={{textAlign:'center'}}>
+                <div style={{fontFamily:"'Syne',sans-serif",fontSize:28,fontWeight:800,color:remaining<60?C.pink:C.gold,lineHeight:1}}>{mins}:{secs.toString().padStart(2,'0')}</div>
+                <div style={{fontSize:8,color:C.muted,marginTop:2}}>RESTANTE</div>
+              </div>
+              <div style={{flex:1,margin:'0 14px',height:2,background:C.border,borderRadius:2,overflow:'hidden'}}>
+                <div style={{height:'100%',width:`${pctDone}%`,background:`linear-gradient(90deg,${col},${C.mint})`,transition:'width .5s'}}/>
+              </div>
+              <div style={{textAlign:'center'}}>
+                <div style={{fontFamily:"'Syne',sans-serif",fontSize:28,fontWeight:800,color:col,lineHeight:1}}>{words}</div>
+                <div style={{fontSize:8,color:C.muted,marginTop:2}}>PALABRAS</div>
+              </div>
+            </div>
+            <div style={{background:`${col}08`,border:`1px solid ${col}20`,borderRadius:4,padding:'6px 10px',marginBottom:10,display:'flex',justifyContent:'space-between'}}>
+              <span style={{fontSize:9,color:col}}>{dom?.icon} {dom?.name.toUpperCase()}</span>
+              <span style={{fontSize:9,color:C.muted}}>SIN BORRAR · SIN PARAR</span>
+            </div>
+            <textarea ref={textRef} value={text} onChange={e=>setText(e.target.value)} onKeyDown={handleKey}
+              placeholder="Empieza a escribir. No pares. No importa lo que salga..."
+              style={{width:'100%',height:'calc(100vh - 280px)',background:C.card,border:`1px solid ${col}30`,borderRadius:10,padding:'14px',color:C.text,fontFamily:"'Space Mono',monospace",fontSize:13,lineHeight:1.9,resize:'none',caretColor:col}}/>
+          </div>
+        )}
+
+        {/* ANALYZE */}
+        {phase==='analyze'&&(
+          <div className="fade-in" style={{paddingTop:40,textAlign:'center'}}>
+            <div style={{fontSize:36,marginBottom:16}}>◎</div>
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:18,fontWeight:800,color:col,marginBottom:8}}>TIEMPO COMPLETADO</div>
+            <div style={{fontSize:11,color:C.muted,marginBottom:24}}>{words} palabras · {duration} minutos</div>
+            <button onClick={analyze} style={{width:'100%',background:col,color:'#fff',border:'none',borderRadius:10,padding:14,fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700,letterSpacing:'.1em',cursor:'pointer'}}>
+              ◉ ANALIZAR LO QUE SALIÓ
+            </button>
+          </div>
+        )}
+
+        {/* COMPLETE */}
+        {phase==='complete'&&(
+          <div className="fade-in" style={{paddingTop:20}}>
+            <div style={{display:'flex',gap:8,marginBottom:16}}>
+              {[[words,'PALABRAS',col],[duration,'MINUTOS',C.gold],[dom?.level||1,'NIVEL',dom?.color||col]].map(([v,l,c])=>(
+                <div key={l} style={{flex:1,background:C.card,border:`1px solid ${c}30`,borderRadius:10,padding:12,textAlign:'center'}}>
+                  <div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800,color:c}}>{v}</div>
+                  <div style={{fontSize:8,color:C.muted,marginTop:3}}>{l}</div>
+                </div>
+              ))}
+            </div>
+            {analyzing?(
+              <div style={{textAlign:'center',padding:'30px 0'}}>
+                <div style={{fontSize:20,display:'inline-block',animation:'spin 1s linear infinite',color:col}}>◉</div>
+                <div style={{fontSize:11,color:C.muted,marginTop:12}}>Leyendo lo que escribiste...</div>
+              </div>
+            ):(
+              <>
+                <div style={{background:C.card,border:`1px solid ${col}30`,borderRadius:10,padding:14,marginBottom:16}}>
+                  <div style={{fontSize:9,color:col,fontWeight:700,letterSpacing:'.12em',marginBottom:10}}>◎ LO QUE VEO</div>
+                  <div style={{fontSize:13,color:'#BCBCD8',lineHeight:1.85,whiteSpace:'pre-wrap'}}>{analysis}</div>
+                </div>
+                <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:14,marginBottom:16,maxHeight:200,overflowY:'auto'}}>
+                  <div style={{fontSize:9,color:C.muted,letterSpacing:'.12em',marginBottom:8}}>LO QUE ESCRIBISTE</div>
+                  <div style={{fontSize:11,color:'#7070A0',lineHeight:1.7}}>{text}</div>
+                </div>
+                <div style={{display:'flex',gap:8}}>
+                  <button onClick={()=>{setPhase('setup');setText('');setElapsed(0);setAnalysis('');}} style={{flex:1,background:C.card,color:C.muted,border:`1px solid ${C.border}`,borderRadius:8,padding:10,fontFamily:"'Space Mono',monospace",fontSize:10,cursor:'pointer'}}>REPETIR</button>
+                  <button onClick={onClose} style={{flex:1,background:col,color:'#fff',border:'none',borderRadius:8,padding:10,fontFamily:"'Space Mono',monospace",fontSize:10,fontWeight:700,cursor:'pointer'}}>LISTO ✓</button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── SOMBRA SESSION ──────────────────────────────────
+function SombraSession({domains,onClose}){
+  const[phase,setPhase]=useState('setup');
+  const[domainId,setDomainId]=useState([...domains].sort((a,b)=>a.level-b.level)[0].id);
+  const[questions,setQuestions]=useState([]);
+  const[answers,setAnswers]=useState([]);
+  const[currentAnswer,setCurrentAnswer]=useState('');
+  const[currentQ,setCurrentQ]=useState('');
+  const[loading,setLoading]=useState(false);
+  const[synthesis,setSynthesis]=useState('');
+  const col='#FF2D78';const MAX_Q=5;
+  const dom=domains.find(d=>d.id===domainId);
+  const qIdx=questions.length;
+  const LVL=['Supervivencia','Emocional','Ego/Poder','Razon','Amor','Intuicion','Unidad'];
+  const DEPTH=['Pregunta de apertura: como describes el bloqueo en '+dom?.name+' en este momento?','Busca el patron. Cuando fue la primera vez que sentiste esto en esta area?','Al origen. Quien o que crees que esta detras de este bloqueo?','Al miedo real. Que es exactamente lo que mas temes que pase si resuelves esto?','A la creencia raiz. La que nunca dices en voz alta. Que dice esa voz interna que crees que no mereces o no puedes?'];
+
+  const callAI=async(sys,msg,max=400)=>{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:max,system:sys,messages:[{role:'user',content:msg}]})});
+    const d=await res.json();return d.content?.[0]?.text||'Sin respuesta.';
+  };
+
+  const SYS='Eres un guia de shadow work junguiano. Haces preguntas que van al nucleo del bloqueo real. Cada pregunta va mas profundo que la anterior. No das consejos. No consuelas ni suavizas. Solo preguntas que revelan lo que la persona evita ver. Maximo 2 lineas. Espanol directo.';
+
+  const genQ=async(prevA,prevQ)=>{
+    setLoading(true);
+    const ctx='Dominio: '+dom?.name+' (Nivel '+dom?.level+' - '+LVL[(dom?.level||1)-1]+').';
+    const hist=prevQ.map((q,i)=>'P'+(i+1)+': '+q+' / R: '+prevA[i]).join(' | ');
+    const depth=DEPTH[prevA.length]||'Profundiza mas en lo que emerge.';
+    const msg=ctx+(hist?' Historial: '+hist:'')+'Instruccion: '+depth+' Genera solo la pregunta.';
+    const q=await callAI(SYS,msg);
+    setCurrentQ(q);setLoading(false);
+  };
+
+  const start=async()=>{
+    setPhase('active');setQuestions([]);setAnswers([]);setCurrentAnswer('');
+    await genQ([],[]);
+  };
+
+  const next=async()=>{
+    if(!currentAnswer.trim())return;
+    const nQ=[...questions,currentQ];const nA=[...answers,currentAnswer];
+    setQuestions(nQ);setAnswers(nA);setCurrentAnswer('');
+    if(nQ.length>=MAX_Q){setPhase('synthesis');await doSynth(nQ,nA);}
+    else await genQ(nA,nQ);
+  };
+
+  const doSynth=async(qs,as)=>{
+    setLoading(true);
+    const hist=qs.map((q,i)=>'P: '+q+' R: '+as[i]).join(' | ');
+    const msg='Shadow work en "'+dom?.name+'" nivel '+dom?.level+'. Sesion: '+hist+'. Sintesis: nombra el patron de sombra especifico, de donde viene, como opera inconscientemente, y que necesita para integrarse. 8 lineas max. Directo.';
+    const s=await callAI('Analista de psique junguiana. Nombras patrones de sombra con precision quirurgica. No consuelas. Espanol directo.',msg,600);
+    setSynthesis(s);setLoading(false);
+  };
+
+  const reset=()=>{setPhase('setup');setQuestions([]);setAnswers([]);setCurrentQ('');setSynthesis('');};
+
+  return(
+    <div style={{position:'fixed',inset:0,background:C.bg,zIndex:200,display:'flex',flexDirection:'column'}} className="slide-up">
+      <div style={{padding:'16px 20px',display:'flex',justifyContent:'space-between',alignItems:'center',borderBottom:`1px solid ${C.border}`}}>
+        <div><span style={{fontFamily:"'Syne',sans-serif",fontSize:18,fontWeight:800,color:col}}>SOMBRA</span><span style={{fontSize:10,color:C.muted,marginLeft:10}}>Confrontacion del bloqueo real</span></div>
+        <button onClick={onClose} style={{background:'transparent',border:`1px solid ${C.border}`,borderRadius:6,padding:'6px 12px',color:C.muted,fontFamily:"'Space Mono',monospace",fontSize:10,cursor:'pointer'}}>X SALIR</button>
+      </div>
+      <div style={{flex:1,overflowY:'auto',padding:'0 20px'}}>
+
+        {phase==='setup'&&(
+          <div className="fade-in" style={{paddingTop:24}}>
+            <div style={{background:C.card,border:`1px solid ${col}20`,borderRadius:12,padding:16,marginBottom:20}}>
+              <div style={{fontSize:9,color:col,fontWeight:700,letterSpacing:'.15em',marginBottom:12}}>COMO FUNCIONA</div>
+              {[['5 preguntas','Cada una mas profunda. La IA las genera en tiempo real segun lo que respondes.'],['Sin salida facil','Las preguntas van al nucleo. No hay forma de responder bien.'],['No es terapia','Es cartografia. No solucionas nada hoy. Ves lo que antes no podias ver.'],['La sombra no es el enemigo','Lo que no integras te controla. Lo que ves pierde poder sobre ti.']].map(([t,d])=>(
+                <div key={t} style={{display:'flex',gap:10,marginBottom:10}}>
+                  <span style={{color:col,fontSize:10,flexShrink:0,marginTop:2}}>◉</span>
+                  <div><div style={{fontSize:10,fontWeight:700,color:C.text,marginBottom:2}}>{t}</div><div style={{fontSize:10,color:C.muted,lineHeight:1.6}}>{d}</div></div>
+                </div>
+              ))}
+            </div>
+            <div style={{fontSize:9,color:C.muted,letterSpacing:'.15em',marginBottom:10}}>DOMINIO A CONFRONTAR</div>
+            <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:20}}>
+              {[...domains].sort((a,b)=>a.level-b.level).slice(0,4).map(d=>(
+                <button key={d.id} onClick={()=>setDomainId(d.id)} style={{padding:'7px 12px',borderRadius:6,cursor:'pointer',fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700,border:`1px solid ${domainId===d.id?d.color:C.border}`,background:domainId===d.id?`${d.color}20`:C.card,color:domainId===d.id?d.color:C.muted}}>
+                  {d.icon} {d.name.toUpperCase()} Nv.{d.level}
+                </button>
+              ))}
+            </div>
+            <div style={{background:`${col}08`,border:`1px solid ${col}20`,borderRadius:8,padding:'10px 14px',marginBottom:20,fontSize:10,color:C.muted,lineHeight:1.7}}>
+              Vas a confrontar tu sombra en <span style={{color:dom?.color,fontWeight:700}}>{dom?.name}</span> (nivel {dom?.level}). Responde con honestidad brutal. Nadie mas va a leer esto.
+            </div>
+            <button onClick={start} style={{width:'100%',background:`linear-gradient(135deg,${col},#7C3AFF)`,color:'#fff',border:'none',borderRadius:10,padding:14,fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700,letterSpacing:'.1em',cursor:'pointer'}}>
+              ENTRAR EN LA SOMBRA
+            </button>
+          </div>
+        )}
+
+        {phase==='active'&&(
+          <div style={{paddingTop:20}}>
+            <div style={{display:'flex',gap:6,marginBottom:20}}>
+              {Array.from({length:MAX_Q}).map((_,i)=><div key={i} style={{flex:1,height:3,borderRadius:2,background:i<qIdx?col:i===qIdx?`${col}60`:C.border,transition:'background .3s'}}/>)}
+            </div>
+            <div style={{fontSize:9,color:col,fontWeight:700,letterSpacing:'.1em',marginBottom:12}}>PREGUNTA {qIdx+1} DE {MAX_Q} — {dom?.name.toUpperCase()}</div>
+            {loading?(
+              <div style={{padding:'40px 0',textAlign:'center'}}>
+                <div style={{fontSize:20,display:'inline-block',animation:'spin 1s linear infinite',color:col}}>◉</div>
+                <div style={{fontSize:11,color:C.muted,marginTop:12}}>Generando la siguiente pregunta...</div>
+              </div>
+            ):(
+              <div className="fade-in">
+                <div style={{background:`${col}0A`,border:`1px solid ${col}30`,borderRadius:10,padding:16,marginBottom:14}}>
+                  <div style={{fontSize:15,color:C.text,lineHeight:1.8,fontWeight:700}}>{currentQ}</div>
+                </div>
+                <textarea value={currentAnswer} onChange={e=>setCurrentAnswer(e.target.value)} placeholder="Responde con honestidad brutal..." rows={5}
+                  style={{width:'100%',background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:14,color:C.text,fontFamily:"'Space Mono',monospace",fontSize:12,lineHeight:1.8,resize:'none',marginBottom:12}}/>
+                <button onClick={next} disabled={!currentAnswer.trim()||loading}
+                  style={{width:'100%',background:currentAnswer.trim()?col:C.border,color:'#fff',border:'none',borderRadius:8,padding:12,fontFamily:"'Space Mono',monospace",fontSize:11,fontWeight:700,cursor:currentAnswer.trim()?'pointer':'default',transition:'background .2s'}}>
+                  {qIdx<MAX_Q-1?'SIGUIENTE PREGUNTA →':'VER LA SINTESIS →'}
+                </button>
+              </div>
+            )}
+            {questions.length>0&&(
+              <div style={{marginTop:20,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
+                <div style={{fontSize:9,color:C.muted,marginBottom:10}}>RESPUESTAS ANTERIORES</div>
+                {questions.map((q,i)=>(
+                  <div key={i} style={{marginBottom:10,opacity:.5}}>
+                    <div style={{fontSize:9,color:col,marginBottom:3}}>P{i+1}: {q}</div>
+                    <div style={{fontSize:10,color:C.muted,lineHeight:1.6,paddingLeft:8,borderLeft:`1px solid ${col}30`}}>{answers[i]}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {phase==='synthesis'&&(
+          <div className="fade-in" style={{paddingTop:20}}>
+            <div style={{textAlign:'center',padding:'16px 0 20px'}}>
+              <div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800,color:col,marginBottom:6}}>TU SOMBRA</div>
+              <div style={{fontSize:10,color:C.muted}}>Lo que emerge de las 5 respuestas</div>
+            </div>
+            {loading?(
+              <div style={{padding:'30px 0',textAlign:'center'}}>
+                <div style={{fontSize:20,display:'inline-block',animation:'spin 1s linear infinite',color:col}}>◉</div>
+                <div style={{fontSize:11,color:C.muted,marginTop:12}}>Sintetizando los patrones...</div>
+              </div>
+            ):(
+              <>
+                <div style={{background:C.card,border:`2px solid ${col}40`,borderRadius:12,padding:18,marginBottom:14}}>
+                  <div style={{fontSize:9,color:col,fontWeight:700,letterSpacing:'.15em',marginBottom:10}}>◉ EL PATRON</div>
+                  <div style={{fontSize:13,color:'#BCBCD8',lineHeight:1.9,whiteSpace:'pre-wrap'}}>{synthesis}</div>
+                </div>
+                <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:14,marginBottom:14,maxHeight:220,overflowY:'auto'}}>
+                  <div style={{fontSize:9,color:C.muted,letterSpacing:'.1em',marginBottom:10}}>TUS 5 RESPUESTAS</div>
+                  {questions.map((q,i)=>(
+                    <div key={i} style={{marginBottom:10,paddingBottom:10,borderBottom:i<4?`1px solid ${C.border}`:'none'}}>
+                      <div style={{fontSize:9,color:col,marginBottom:3,fontWeight:700}}>P{i+1}: {q}</div>
+                      <div style={{fontSize:11,color:'#7070A0',lineHeight:1.6}}>{answers[i]}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{display:'flex',gap:8}}>
+                  <button onClick={reset} style={{flex:1,background:C.card,color:C.muted,border:`1px solid ${C.border}`,borderRadius:8,padding:10,fontFamily:"'Space Mono',monospace",fontSize:10,cursor:'pointer'}}>REPETIR</button>
+                  <button onClick={onClose} style={{flex:1,background:col,color:'#fff',border:'none',borderRadius:8,padding:10,fontFamily:"'Space Mono',monospace",fontSize:10,fontWeight:700,cursor:'pointer'}}>LISTO</button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── CUERPO ORÁCULO SESSION ──────────────────────────
+function CuerpoOraculoSession({domains,onClose}){
+  const[phase,setPhase]=useState('setup');
+  const[decision,setDecision]=useState('');
+  const[step,setStep]=useState(0);
+  const[scans,setScans]=useState({});
+  const[interpretation,setInterpretation]=useState('');
+  const[loading,setLoading]=useState(false);
+  const col='#00CFFF';
+
+  const ZONES=[
+    {id:'garganta',name:'GARGANTA',icon:'◎',desc:'El centro de la verdad. ¿Hay tension, nudo, o apertura?',q:'Siente tu garganta. ¿Como esta?',opts:[['Apretada','contraccion'],['Neutral','neutro'],['Abierta','expansion']]},
+    {id:'pecho',name:'PECHO',icon:'◉',desc:'El corazon. El centro emocional mas honesto del cuerpo.',q:'Siente tu pecho y corazon. ¿Como responde?',opts:[['Cerrado / pesado','contraccion'],['Tranquilo','neutro'],['Abierto / ligero','expansion']]},
+    {id:'estomago',name:'ESTOMAGO',icon:'◈',desc:'El intestino sabe antes que el cerebro. El segundo cerebro.',q:'Siente tu estomago. ¿Que señal manda?',opts:[['Revuelto / tenso','contraccion'],['Estable','neutro'],['Suelto / comodo','expansion']]},
+    {id:'hombros',name:'HOMBROS',icon:'◊',desc:'Donde cargo el peso. La carga que acepto o rechazo.',q:'Siente tus hombros. ¿Como estan?',opts:[['Subidos / cargados','contraccion'],['Normales','neutro'],['Sueltos / bajos','expansion']]},
+  ];
+
+  const callAI=async(sys,msg)=>{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,system:sys,messages:[{role:'user',content:msg}]})});
+    const d=await res.json();return d.content?.[0]?.text||'Sin respuesta.';
+  };
+
+  const selectScan=(zoneId,signal)=>{
+    const newScans={...scans,[zoneId]:signal};
+    setScans(newScans);
+    if(step<ZONES.length-1){setStep(s=>s+1);}
+    else{setPhase('interpret');doInterpret(newScans);}
+  };
+
+  const doInterpret=async(finalScans)=>{
+    setLoading(true);
+    const scanText=ZONES.map(z=>`${z.name}: ${finalScans[z.id]||'no registrado'}`).join(', ');
+    const exp=Object.values(finalScans).filter(v=>v==='expansion').length;
+    const cont=Object.values(finalScans).filter(v=>v==='contraccion').length;
+    const veredict=exp>=3?'SI':cont>=3?'NO':'AMBIGUO';
+    const msg=`La persona debe decidir: "${decision}". Señales del cuerpo: ${scanText}. Expansion: ${exp}/4, Contraccion: ${cont}/4. Veredicto somatico inicial: ${veredict}. Interpreta estas señales somaticas con profundidad. Que dice el cuerpo realmente? Que parte del cuerpo tiene la señal mas clara y por que? Si hay contradiccion entre zonas, que significa? Que deberia considerar esta persona antes de decidir? Maximo 6 lineas. Directo.`;
+    const i=await callAI('Eres un experto en inteligencia somatica y la hipotesis del marcador somatico de Damasio. Interpretas señales del cuerpo como informacion, no como metafora. Espanol directo.',msg);
+    setInterpretation(i);setLoading(false);
+  };
+
+  const reset=()=>{setPhase('setup');setDecision('');setStep(0);setScans({});setInterpretation('');};
+
+  const exp=Object.values(scans).filter(v=>v==='expansion').length;
+  const cont=Object.values(scans).filter(v=>v==='contraccion').length;
+  const veredict=exp>=3?{label:'EL CUERPO DICE SI',col:'#00F5A0'}:cont>=3?{label:'EL CUERPO DICE NO',col:'#FF2D78'}:{label:'EL CUERPO DUDA',col:'#FFB830'};
+
+  return(
+    <div style={{position:'fixed',inset:0,background:C.bg,zIndex:200,display:'flex',flexDirection:'column'}} className="slide-up">
+      <div style={{padding:'16px 20px',display:'flex',justifyContent:'space-between',alignItems:'center',borderBottom:`1px solid ${C.border}`}}>
+        <div><span style={{fontFamily:"'Syne',sans-serif",fontSize:18,fontWeight:800,color:col}}>CUERPO ORÁCULO</span><span style={{fontSize:10,color:C.muted,marginLeft:10}}>Decision somatica</span></div>
+        <button onClick={onClose} style={{background:'transparent',border:`1px solid ${C.border}`,borderRadius:6,padding:'6px 12px',color:C.muted,fontFamily:"'Space Mono',monospace",fontSize:10,cursor:'pointer'}}>X SALIR</button>
+      </div>
+      <div style={{flex:1,overflowY:'auto',padding:'0 20px'}}>
+
+        {phase==='setup'&&(
+          <div className="fade-in" style={{paddingTop:24}}>
+            <div style={{background:C.card,border:`1px solid ${col}20`,borderRadius:12,padding:16,marginBottom:20}}>
+              <div style={{fontSize:9,color:col,fontWeight:700,letterSpacing:'.15em',marginBottom:12}}>LA CIENCIA DETRAS</div>
+              {[['Marcador somatico','Antonio Damasio documento que el cuerpo toma decisiones 6-7 segundos antes que la mente consciente. Lo que sientes en el cuerpo ante una decision no es emocion — es informacion.'],['El segundo cerebro','El intestino tiene 100 millones de neuronas. Mas que la medula espinal. Envia mas señales al cerebro de las que recibe. Tu gut feeling es real, neurologicamente.'],['Expansion / Contraccion','El cuerpo se expande hacia lo que es verdad para ti. Se contrae ante lo que va en contra de tu naturaleza. No miente — la mente si puede.']].map(([t,d])=>(
+                <div key={t} style={{display:'flex',gap:10,marginBottom:12}}>
+                  <span style={{color:col,fontSize:10,flexShrink:0,marginTop:2}}>◉</span>
+                  <div><div style={{fontSize:10,fontWeight:700,color:C.text,marginBottom:2}}>{t}</div><div style={{fontSize:10,color:C.muted,lineHeight:1.6}}>{d}</div></div>
+                </div>
+              ))}
+            </div>
+            <div style={{fontSize:9,color:C.muted,letterSpacing:'.15em',marginBottom:8}}>LA DECISION QUE NECESITAS TOMAR</div>
+            <textarea value={decision} onChange={e=>setDecision(e.target.value)} rows={3}
+              placeholder="Escribe la decision en una frase. Ej: 'Deberia lanzar el tema este domingo' o 'Deberia firmar este contrato'..."
+              style={{width:'100%',background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 14px',color:C.text,fontFamily:"'Space Mono',monospace",fontSize:11,lineHeight:1.7,resize:'none',marginBottom:20}}/>
+            <div style={{background:`${col}08`,border:`1px solid ${col}20`,borderRadius:8,padding:'10px 14px',marginBottom:20,fontSize:10,color:C.muted,lineHeight:1.7}}>
+              Antes de escanear: cierra los ojos 10 segundos. Respira tres veces profundo. Trae la decision a tu mente con claridad. Luego abre los ojos y empieza.
+            </div>
+            <button onClick={()=>decision.trim()&&setPhase('scan')} disabled={!decision.trim()}
+              style={{width:'100%',background:decision.trim()?`linear-gradient(135deg,${col},#00F5A0)`:'#181830',color:decision.trim()?'#030308':C.muted,border:'none',borderRadius:10,padding:14,fontFamily:"'Space Mono',monospace",fontSize:12,fontWeight:700,letterSpacing:'.1em',cursor:decision.trim()?'pointer':'default',transition:'all .2s'}}>
+              ESCANEAR EL CUERPO
+            </button>
+          </div>
+        )}
+
+        {phase==='scan'&&(()=>{
+          const zone=ZONES[step];
+          return(
+            <div style={{paddingTop:24}} className="fade-in">
+              <div style={{display:'flex',gap:6,marginBottom:20}}>
+                {ZONES.map((_,i)=><div key={i} style={{flex:1,height:3,borderRadius:2,background:i<step?col:i===step?`${col}60`:C.border,transition:'background .3s'}}/>)}
+              </div>
+              <div style={{background:`${col}08`,border:`1px solid ${col}20`,borderRadius:8,padding:'8px 14px',marginBottom:20,fontSize:10,color:col}}>
+                Decidiendo: "{decision}"
+              </div>
+              <div style={{textAlign:'center',marginBottom:16}}>
+                <div style={{fontSize:48,marginBottom:8}}>{zone.icon}</div>
+                <div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800,color:col,marginBottom:6}}>{zone.name}</div>
+                <div style={{fontSize:11,color:C.muted,marginBottom:4}}>{zone.desc}</div>
+              </div>
+              <div style={{background:C.card,border:`1px solid ${col}20`,borderRadius:10,padding:14,marginBottom:20,textAlign:'center'}}>
+                <div style={{fontSize:13,color:C.text,fontWeight:700,lineHeight:1.8}}>{zone.q}</div>
+                <div style={{fontSize:10,color:C.muted,marginTop:6}}>Toma 5 segundos. No pienses — siente.</div>
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                {zone.opts.map(([label,signal])=>{
+                  const btnCol=signal==='expansion'?'#00F5A0':signal==='contraccion'?'#FF2D78':'#555577';
+                  return(
+                    <button key={signal} onClick={()=>selectScan(zone.id,signal)}
+                      style={{background:`${btnCol}15`,border:`1px solid ${btnCol}40`,borderRadius:10,padding:'14px 18px',cursor:'pointer',textAlign:'left',display:'flex',alignItems:'center',gap:12}}>
+                      <div style={{width:10,height:10,borderRadius:'50%',background:btnCol,flexShrink:0}}/>
+                      <div>
+                        <div style={{fontSize:12,fontWeight:700,color:btnCol,fontFamily:"'Space Mono',monospace"}}>{label}</div>
+                        <div style={{fontSize:9,color:C.muted,marginTop:2}}>{signal==='expansion'?'El cuerpo se abre':signal==='contraccion'?'El cuerpo se cierra':'Sin señal clara'}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              {step>0&&(
+                <div style={{marginTop:20,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
+                  <div style={{fontSize:9,color:C.muted,marginBottom:8}}>ESCANEOS ANTERIORES</div>
+                  {ZONES.slice(0,step).map(z=>{
+                    const s=scans[z.id];const sc=s==='expansion'?'#00F5A0':s==='contraccion'?'#FF2D78':'#555577';
+                    return<div key={z.id} style={{display:'flex',justifyContent:'space-between',marginBottom:5}}><span style={{fontSize:9,color:C.muted}}>{z.name}</span><span style={{fontSize:9,color:sc,fontWeight:700}}>{s?.toUpperCase()}</span></div>;
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {phase==='interpret'&&(
+          <div className="fade-in" style={{paddingTop:20}}>
+            <div style={{background:`${col}08`,border:`1px solid ${col}20`,borderRadius:8,padding:'8px 14px',marginBottom:16,fontSize:10,color:col}}>
+              "{decision}"
+            </div>
+            <div style={{display:'flex',gap:8,marginBottom:16}}>
+              {[['EXPANSION',exp,`#00F5A0`],['NEUTRO',Object.values(scans).filter(v=>v==='neutro').length,'#555577'],['CONTRACCION',cont,'#FF2D78']].map(([l,v,c])=>(
+                <div key={l} style={{flex:1,background:C.card,border:`1px solid ${c}30`,borderRadius:8,padding:'10px 8px',textAlign:'center'}}>
+                  <div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800,color:c}}>{v}</div>
+                  <div style={{fontSize:7,color:C.muted,marginTop:3,letterSpacing:'.06em'}}>{l}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{background:`${veredict.col}15`,border:`2px solid ${veredict.col}40`,borderRadius:10,padding:'12px 16px',marginBottom:16,textAlign:'center'}}>
+              <div style={{fontFamily:"'Syne',sans-serif",fontSize:18,fontWeight:800,color:veredict.col}}>{veredict.label}</div>
+            </div>
+            {loading?(
+              <div style={{padding:'24px 0',textAlign:'center'}}>
+                <div style={{fontSize:20,display:'inline-block',animation:'spin 1s linear infinite',color:col}}>◉</div>
+                <div style={{fontSize:11,color:C.muted,marginTop:10}}>Interpretando las señales...</div>
+              </div>
+            ):(
+              <>
+                <div style={{background:C.card,border:`1px solid ${col}30`,borderRadius:10,padding:14,marginBottom:14}}>
+                  <div style={{fontSize:9,color:col,fontWeight:700,letterSpacing:'.12em',marginBottom:10}}>◎ LO QUE DICE EL CUERPO</div>
+                  <div style={{fontSize:13,color:'#BCBCD8',lineHeight:1.85,whiteSpace:'pre-wrap'}}>{interpretation}</div>
+                </div>
+                <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:14,marginBottom:14}}>
+                  <div style={{fontSize:9,color:C.muted,marginBottom:10}}>RESUMEN DEL ESCANEO</div>
+                  {ZONES.map(z=>{const s=scans[z.id];const sc=s==='expansion'?'#00F5A0':s==='contraccion'?'#FF2D78':'#555577';return(
+                    <div key={z.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}><span style={{fontSize:12}}>{z.icon}</span><span style={{fontSize:10,color:C.muted}}>{z.name}</span></div>
+                      <span style={{fontSize:9,color:sc,fontWeight:700,background:`${sc}15`,padding:'2px 8px',borderRadius:4}}>{s?.toUpperCase()}</span>
+                    </div>
+                  );})}
+                </div>
+                <div style={{display:'flex',gap:8}}>
+                  <button onClick={reset} style={{flex:1,background:C.card,color:C.muted,border:`1px solid ${C.border}`,borderRadius:8,padding:10,fontFamily:"'Space Mono',monospace",fontSize:10,cursor:'pointer'}}>NUEVA DECISION</button>
+                  <button onClick={onClose} style={{flex:1,background:col,color:'#030308',border:'none',borderRadius:8,padding:10,fontFamily:"'Space Mono',monospace",fontSize:10,fontWeight:700,cursor:'pointer'}}>LISTO</button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── MAIN APP ────────────────────────────────────────
+function App(){
+  const[domains,setDomains]=useState(INIT_DOMAINS);
+  const[section,setSection]=useState('hoy');
+  const[vagoState,setVagoState]=useState(null);
+  const[wakeTime,setWakeTime]=useState('07:00');
+  const[activeSession,setActiveSession]=useState(null);
+  const[reto,setReto]=useState(null);
+  const[retoDone,setRetoDone]=useState(false);
+  const[retoLoading,setRetoLoading]=useState(false);
+  const[streak,setStreak]=useState(0);
+  const[retHistory,setRetHistory]=useState([]);
+  const[question,setQuestion]=useState('');
+  const[insight,setInsight]=useState('');
+  const[oLoading,setOLoading]=useState(false);
+  const[entries,setEntries]=useState([]);
+  const[note,setNote]=useState('');
+  const[focusDomId,setFocusDomId]=useState('negocio');
+  const[retoFocusId,setRetoFocusId]=useState(null);
+  const[tick,setTick]=useState(0);
+
+  useEffect(()=>{const t=setInterval(()=>setTick(x=>x+1),60000);return()=>clearInterval(t);},[]);
+
+  const moon=getMoon();
+  const ult=getUltradian(wakeTime);
+  const fibOf=d=>FIB[d.level-1];
+  const total=domains.reduce((s,d)=>s+fibOf(d),0);
+  const pct=Math.round((total/91)*100);
+  const sorted=[...domains].sort((a,b)=>a.level-b.level);
+  const low3=sorted.slice(0,3);
+  const activeRetoId=retoFocusId||sorted[0].id;
+  const retoDom=domains.find(d=>d.id===activeRetoId);
+  const upd=(id,v)=>setDomains(p=>p.map(d=>d.id===id?{...d,level:Number(v)}:d));
+
+  // Radar
+  const CX=150,CY=150,R=100;
+  const ang=i=>((i*360)/7-90)*(Math.PI/180);
+  const pt=(l,i)=>{const r=(l/7)*R;return[CX+r*Math.cos(ang(i)),CY+r*Math.sin(ang(i))];};
+  const lpt=i=>{const r=R+24;return[CX+r*Math.cos(ang(i)),CY+r*Math.sin(ang(i))];};
+  const filled=domains.map((d,i)=>{const[x,y]=pt(d.level,i);return`${i===0?'M':'L'}${x.toFixed(1)},${y.toFixed(1)}`;}).join(' ')+'Z';
+  const grid=l=>domains.map((_,i)=>{const[x,y]=pt(l,i);return`${i===0?'M':'L'}${x.toFixed(1)},${y.toFixed(1)}`;}).join(' ')+'Z';
+
+  const callAI=async(sys,msg,max=800)=>{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:max,system:sys,messages:[{role:'user',content:msg}]})});
+    const d=await r.json();return d.content?.[0]?.text||'Sin respuesta.';
+  };
+
+  const getReto=async()=>{
+    if(!retoDom)return;
+    setRetoLoading(true);setReto(null);setRetoDone(false);
+    const ctx=domains.map(d=>`${d.name}:${d.level}`).join(', ');
+    const vs=vagoState?`Vago: ${VAGO_DATA[vagoState].label}.`:'';
+    const msg=`Artista/productor dominicano en España. ${vs} Luna: ${moon.name}. Mapa: ${ctx}.\nDominio: ${retoDom.name} Nivel ${retoDom.level}. Salto: ${LEVEL_JUMPS[retoDom.level]||'evolucionar'}.\nDA UN reto para HOY:\nRETO: [acción concreta]\nTIEMPO: [duración]\nPOR QUÉ FUNCIONA: [1 línea]\nSEÑAL DE ÉXITO: [cómo saberlo]`;
+    try{const text=await callAI('Coach brutalmente práctico. Retos accionables hoy. Español directo.',msg,350);setReto({text,domain:retoDom,date:new Date().toLocaleDateString('es-ES'),targetLevel:Math.min(retoDom.level+1,7)});}
+    catch{setReto({text:'Error.',domain:retoDom,date:new Date().toLocaleDateString('es-ES'),targetLevel:2});}
+    setRetoLoading(false);
+  };
+  const markDone=()=>{if(!reto||retoDone)return;setRetoDone(true);setStreak(s=>s+1);setRetHistory(p=>[{...reto,completedAt:new Date().toLocaleDateString('es-ES')},...p]);};
+
+  const getInsight=async()=>{
+    setOLoading(true);setInsight('');
+    const sum=domains.map(d=>`${d.name}: Nivel ${d.level}`).join(', ');
+    const vs=vagoState?`Vago: ${VAGO_DATA[vagoState].label}.`:'';
+    const msg=question?`Mapa: ${sum}. ${vs} Luna: ${moon.name}. Pregunta: ${question}`:`Mapa: ${sum}. ${vs} Luna: ${moon.name}. FIB: ${total}/91. Análisis profundo, guía concreta.`;
+    try{setInsight(await callAI('Guía de conciencia. Neurociencia + filosofía práctica. Español directo.',msg));}catch{setInsight('Error.');}
+    setOLoading(false);
+  };
+
+  const addEntry=()=>{
+    if(!note.trim())return;
+    const dom=domains.find(d=>d.id===focusDomId);
+    setEntries(p=>[{id:Date.now(),domainName:dom.name,color:dom.color,level:dom.level,levelName:LEVELS[dom.level-1].name,note:note.trim(),date:new Date().toLocaleDateString('es-ES')},...p]);
+    setNote('');
+  };
+
+  const vago=vagoState?VAGO_DATA[vagoState]:null;
+  const moonDoms=domains.filter(d=>moon.domains.includes(d.id));
+
+  // ── RENDER ──
+  return(
+    <div style={{background:C.bg,minHeight:'100vh',display:'flex',flexDirection:'column'}}>
+
+      {/* Session overlay */}
+      {activeSession==='dialogo'&&(
+        <DialogoSession domains={domains} onClose={()=>setActiveSession(null)}/>
+      )}
+      {activeSession==='sombra'&&(
+        <SombraSession domains={domains} onClose={()=>setActiveSession(null)}/>
+      )}
+      {activeSession==='cuerpo'&&(
+        <CuerpoOraculoSession domains={domains} onClose={()=>setActiveSession(null)}/>
+      )}
+      {activeSession&&activeSession!=='dialogo'&&(
+        <BreathSession
+          protocol={BREATH_PROTOCOLS.find(p=>p.id===activeSession)||BREATH_PROTOCOLS[0]}
+          onClose={()=>setActiveSession(null)}
+          onComplete={()=>setActiveSession(null)}
+        />
+      )}
+
+      {/* HEADER */}
+      <div style={{background:C.s1,borderBottom:`1px solid ${C.border}`,padding:'12px 18px',display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
+        <div style={{fontFamily:"'Syne',sans-serif",fontSize:20,fontWeight:800,letterSpacing:'.05em',lineHeight:1}}>
+          PHI <span style={{color:C.mint}}>φ</span>
+        </div>
+        <div style={{display:'flex',gap:14,alignItems:'center'}}>
+          {streak>0&&<div style={{textAlign:'center'}}><div style={{fontFamily:"'Syne',sans-serif",fontSize:16,fontWeight:800,color:C.pink,lineHeight:1}}>{streak}</div><div style={{fontSize:8,color:C.muted}}>RACHA</div></div>}
+          <div style={{textAlign:'right'}}>
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:20,fontWeight:800,color:C.gold,lineHeight:1}}>{total}<span style={{fontSize:10,color:C.muted,fontWeight:400}}>/91</span></div>
+            <div style={{fontSize:8,color:C.muted,letterSpacing:'.1em'}}>FIB · {pct}%</div>
+          </div>
+        </div>
+      </div>
+      {/* FIB bar */}
+      <div style={{height:2,background:C.border,flexShrink:0}}>
+        <div style={{height:'100%',width:`${pct}%`,background:`linear-gradient(90deg,${C.purple},${C.mint})`,transition:'width .5s'}}/>
+      </div>
+
+      {/* CONTENT */}
+      <div style={{flex:1,overflowY:'auto',paddingBottom:70}}>
+
+        {/* ══════ HOY ══════ */}
+        {section==='hoy'&&(
+          <div style={{padding:'16px 18px',display:'flex',flexDirection:'column',gap:14}} className="fade-in">
+
+            {/* Luna + Ultradian strip */}
+            <div style={{display:'flex',gap:10}}>
+              <div style={{flex:1,background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:'12px 14px'}}>
+                <div style={{fontSize:8,color:C.muted,letterSpacing:'.12em',marginBottom:6}}>LUNA HOY</div>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <span style={{fontSize:26}}>{moon.icon}</span>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:700,color:moon.color}}>{moon.name}</div>
+                    <div style={{fontSize:9,color:C.muted,marginTop:1}}>{moon.energy} · {moon.influence.split('.')[0]}</div>
+                  </div>
+                </div>
+                {moonDoms.length>0&&(
+                  <div style={{display:'flex',gap:4,marginTop:8,flexWrap:'wrap'}}>
+                    {moonDoms.map(d=><span key={d.id} style={{fontSize:8,color:d.color,background:`${d.color}15`,border:`1px solid ${d.color}30`,borderRadius:4,padding:'2px 6px'}}>{d.name}</span>)}
+                  </div>
+                )}
+              </div>
+              <div style={{flex:1,background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:'12px 14px'}}>
+                <div style={{fontSize:8,color:C.muted,letterSpacing:'.12em',marginBottom:6}}>RITMO ULTRADIAN</div>
+                {ult?(
+                  <>
+                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                      <div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800,color:ult.isPeak?C.gold:C.muted}}>{ult.isPeak?'⚡':'◌'}</div>
+                      <div>
+                        <div style={{fontSize:11,fontWeight:700,color:ult.isPeak?C.gold:C.muted}}>{ult.isPeak?'PEAK':'TROUGH'}</div>
+                        <div style={{fontSize:9,color:C.muted}}>{ult.remaining} min · Ciclo {ult.cycle}</div>
+                      </div>
+                    </div>
+                    <div style={{height:2,background:C.border,borderRadius:2,overflow:'hidden'}}>
+                      <div style={{height:'100%',width:`${ult.pct}%`,background:ult.isPeak?C.gold:C.purple}}/>
+                    </div>
+                  </>
+                ):(
+                  <div>
+                    <div style={{fontSize:10,color:C.muted,marginBottom:8}}>¿A qué hora despertaste?</div>
+                    <input type="time" value={wakeTime} onChange={e=>setWakeTime(e.target.value)} style={{background:C.s1,border:`1px solid ${C.border}`,borderRadius:6,padding:'5px 8px',color:C.text,fontFamily:"'Space Mono',monospace",fontSize:13,fontWeight:700,width:'100%'}}/>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Nervio Vago */}
+            <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:'14px'}}>
+              <div style={{fontSize:8,color:C.muted,letterSpacing:'.12em',marginBottom:10}}>NERVIO VAGO — ¿CÓMO ESTÁS?</div>
+              <div style={{display:'flex',gap:8,marginBottom:vago?12:0}}>
+                {Object.entries(VAGO_DATA).map(([key,v])=>{
+                  const active=vagoState===key;
+                  return(
+                    <button key={key} onClick={()=>setVagoState(active?null:key)} style={{flex:1,padding:'10px 6px',borderRadius:8,cursor:'pointer',fontFamily:"'Space Mono',monospace",textAlign:'center',border:`1px solid ${active?v.color:C.border}`,background:active?`${v.color}18`:C.s1,color:active?v.color:C.muted,transition:'all .15s'}}>
+                      <div style={{fontSize:18,marginBottom:4}}>{v.icon}</div>
+                      <div style={{fontSize:8,fontWeight:700,letterSpacing:'.06em'}}>{v.label}</div>
+                    </button>
+                  );
+                })}
+              </div>
+              {vago&&(
+                <div className="fade-in" style={{borderTop:`1px solid ${C.border}`,paddingTop:12}}>
+                  <div style={{fontSize:11,color:vago.color,fontWeight:700,marginBottom:8}}>{vago.desc}</div>
+                  {vago.tools.map((t,i)=><div key={i} style={{display:'flex',gap:8,marginBottom:5}}><span style={{color:vago.color,fontSize:9,flexShrink:0,marginTop:1}}>→</span><span style={{fontSize:10,color:'#9090B0',lineHeight:1.6}}>{t}</span></div>)}
+                  <div style={{marginTop:10,background:`${vago.color}10`,border:`1px solid ${vago.color}30`,borderRadius:6,padding:'7px 10px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <span style={{fontSize:10,color:vago.color,fontWeight:700}}>{vago.freq}</span>
+                    <span style={{fontSize:9,color:C.muted}}>{vago.tip}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Reto del día */}
+            <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:14}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+                <div style={{fontSize:8,color:C.muted,letterSpacing:'.12em'}}>RETO DEL DÍA</div>
+                <div style={{display:'flex',gap:6}}>
+                  {low3.map(d=>(
+                    <button key={d.id} onClick={()=>{setRetoFocusId(d.id);setReto(null);setRetoDone(false);}} style={{padding:'3px 8px',borderRadius:4,cursor:'pointer',fontFamily:"'Space Mono',monospace",fontSize:8,fontWeight:700,border:`1px solid ${activeRetoId===d.id?d.color:C.border}`,background:activeRetoId===d.id?`${d.color}20`:'transparent',color:activeRetoId===d.id?d.color:C.muted}}>
+                      {d.icon} {d.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {!reto&&(
+                <button onClick={getReto} disabled={retoLoading} style={{width:'100%',background:retoLoading?C.border:C.pink,color:'#fff',border:'none',borderRadius:8,padding:12,fontFamily:"'Space Mono',monospace",fontSize:10,fontWeight:700,letterSpacing:'.08em',cursor:retoLoading?'wait':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+                  {retoLoading?<><span style={{display:'inline-block',animation:'spin .8s linear infinite'}}>◉</span> GENERANDO...</>:`◉ GENERAR RETO — ${retoDom?.name.toUpperCase()}`}
+                </button>
+              )}
+              {reto&&(
+                <div className="fade-in">
+                  <div style={{fontSize:11,color:'#BCBCD8',lineHeight:1.85,whiteSpace:'pre-wrap',marginBottom:12,borderLeft:`2px solid ${reto.domain.color}`,paddingLeft:10}}>{reto.text}</div>
+                  {!retoDone
+                    ?<button onClick={markDone} style={{background:C.mint,color:'#030308',border:'none',borderRadius:6,padding:'8px 18px',fontFamily:"'Space Mono',monospace",fontSize:10,fontWeight:700,cursor:'pointer'}}>✓ COMPLETADO</button>
+                    :<div style={{display:'flex',gap:8,alignItems:'center'}}>
+                      <span style={{fontSize:10,color:C.mint,fontWeight:700}}>✓ RACHA {streak}</span>
+                      <button onClick={()=>{setReto(null);setRetoDone(false);}} style={{background:'transparent',color:C.muted,border:`1px solid ${C.border}`,borderRadius:5,padding:'4px 10px',fontFamily:"'Space Mono',monospace",fontSize:9,cursor:'pointer'}}>NUEVO</button>
+                    </div>
+                  }
+                </div>
+              )}
+            </div>
+
+          </div>
+        )}
+
+        {/* ══════ MAPA ══════ */}
+        {section==='mapa'&&(
+          <div style={{padding:'16px 18px'}} className="fade-in">
+            <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:10,marginBottom:14,overflowX:'auto'}}>
+              <svg width="300" height="300" viewBox="0 0 300 300" style={{overflow:'visible',display:'block',margin:'0 auto'}}>
+                {[1,2,3,4,5,6,7].map(l=><path key={l} d={grid(l)} fill={l===7?'rgba(0,245,160,.04)':'none'} stroke={l===7?'rgba(0,245,160,.25)':C.border} strokeWidth={l===7?'1':'.5'} strokeDasharray={l<7?'3,3':'none'}/>)}
+                {domains.map((_,i)=>{const[x,y]=pt(7,i);return<line key={i} x1={CX} y1={CY} x2={x} y2={y} stroke={C.border} strokeWidth=".5"/>;  })}
+                <path d={filled} fill="rgba(0,245,160,.06)" stroke={C.mint} strokeWidth="1.5" strokeLinejoin="round"/>
+                {domains.map((d,i)=>{const[x,y]=pt(d.level,i);return(<g key={d.id}><circle cx={x} cy={y} r="6" fill={C.bg} stroke={d.color} strokeWidth="2"/><circle cx={x} cy={y} r="3" fill={d.color}/></g>);})}
+                {domains.map((d,i)=>{const[lx,ly]=lpt(i);const a=lx<CX-8?'end':lx>CX+8?'start':'middle';return<text key={d.id} x={lx} y={ly} textAnchor={a} dominantBaseline="middle" fontSize="9" fill={d.color} fontFamily="Space Mono,monospace" fontWeight="700">{d.name.toUpperCase()}</text>;})}
+                <circle cx={CX} cy={CY} r="3" fill={C.mint} opacity=".5"/>
+              </svg>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:7}}>
+              {domains.map(d=>{
+                const lvl=LEVELS[d.level-1];const pp=((d.level-1)/6)*100;
+                return(
+                  <div key={d.id} style={{background:C.card,border:`1px solid ${C.border}`,borderLeft:`3px solid ${d.color}`,borderRadius:8,padding:'10px 12px'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:7}}>
+                      <div style={{display:'flex',alignItems:'center',gap:7}}><span style={{color:d.color,fontSize:13}}>{d.icon}</span><span style={{fontSize:10,fontWeight:700,letterSpacing:'.08em'}}>{d.name.toUpperCase()}</span></div>
+                      <div style={{display:'flex',alignItems:'center',gap:6}}>
+                        <span style={{fontSize:9,color:lvl.color,background:`${lvl.color}18`,padding:'2px 6px',borderRadius:3}}>{lvl.name}</span>
+                        <span style={{fontSize:11,fontWeight:700,color:C.gold}}>·{fibOf(d)}</span>
+                      </div>
+                    </div>
+                    <div style={{display:'flex',alignItems:'center',gap:8}}>
+                      <span style={{fontSize:9,color:C.muted}}>1</span>
+                      <input type="range" min="1" max="7" value={d.level} step="1" onChange={e=>upd(d.id,e.target.value)} style={{background:`linear-gradient(90deg,${d.color} ${pp}%,#181830 ${pp}%)`}}/>
+                      <span style={{fontSize:9,color:C.muted}}>7</span>
+                      <span style={{fontSize:14,fontWeight:700,color:d.color,minWidth:14,textAlign:'center'}}>{d.level}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ══════ PRÁCTICA ══════ */}
+        {section==='practica'&&(
+          <div style={{padding:'16px 18px'}} className="fade-in">
+
+            {/* PULSO */}
+            <div style={{marginBottom:14}}>
+              <div style={{fontSize:9,color:C.muted,letterSpacing:'.15em',marginBottom:10}}>COHERENCIA CARDÍACA</div>
+              <button onClick={()=>setActiveSession('coherencia')} style={{width:'100%',background:C.card,border:`1px solid ${C.mint}30`,borderRadius:12,padding:'16px 18px',cursor:'pointer',textAlign:'left',display:'flex',alignItems:'center',gap:16}}>
+                <div style={{width:44,height:44,borderRadius:'50%',border:`2px solid ${C.mint}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,background:`${C.mint}10`,flexShrink:0}}>φ</div>
+                <div style={{flex:1}}>
+                  <div style={{fontFamily:"'Syne',sans-serif",fontSize:16,fontWeight:800,color:C.mint,marginBottom:3}}>PULSO</div>
+                  <div style={{fontSize:10,color:C.muted,lineHeight:1.6}}>Coherencia cardíaca · 5.5 resp/min · El estado base de todo</div>
+                </div>
+                <div style={{fontSize:18,color:C.mint}}>→</div>
+              </button>
+            </div>
+
+            {/* RESPIRACIÓN */}
+            <div>
+              <div style={{fontSize:9,color:C.muted,letterSpacing:'.15em',marginBottom:10}}>RESPIRACIÓN — PROTOCOLOS</div>
+              <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                {BREATH_PROTOCOLS.filter(p=>p.id!=='coherencia').map(p=>(
+                  <button key={p.id} onClick={()=>setActiveSession(p.id)} style={{background:C.card,border:`1px solid ${p.color}25`,borderRadius:10,padding:'14px 16px',cursor:'pointer',textAlign:'left',display:'flex',alignItems:'center',gap:14}}>
+                    <div style={{width:38,height:38,borderRadius:8,border:`1.5px solid ${p.color}50`,display:'flex',alignItems:'center',justifyContent:'center',background:`${p.color}10`,flexShrink:0}}>
+                      <div style={{width:12,height:12,borderRadius:'50%',background:p.color,opacity:.8}}/>
+                    </div>
+                    <div style={{flex:1}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
+                        <span style={{fontSize:13,fontWeight:700,color:p.color}}>{p.name}</span>
+                        <span style={{fontSize:8,color:p.color,background:`${p.color}15`,border:`1px solid ${p.color}30`,borderRadius:3,padding:'1px 5px'}}>{p.badge}</span>
+                      </div>
+                      <div style={{fontSize:10,color:C.muted,lineHeight:1.5}}>{p.for}</div>
+                    </div>
+                    <div style={{fontSize:16,color:p.color}}>→</div>
+                  </button>
+                ))}
+
+                {/* DIÁLOGO */}
+                <button onClick={()=>setActiveSession("dialogo")} style={{background:C.card,border:`1px solid #9B6AFF40`,borderRadius:10,padding:"14px 16px",cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:14}}>
+                  <div style={{width:38,height:38,borderRadius:8,border:"1.5px solid #9B6AFF50",display:"flex",alignItems:"center",justifyContent:"center",background:"#9B6AFF10",flexShrink:0}}><div style={{width:12,height:12,borderRadius:"50%",background:"#9B6AFF",opacity:.8}}/></div>
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}><span style={{fontSize:13,fontWeight:700,color:"#9B6AFF"}}>DIÁLOGO</span><span style={{fontSize:8,color:"#9B6AFF",background:"#9B6AFF15",border:"1px solid #9B6AFF30",borderRadius:3,padding:"1px 5px"}}>Sin borrar</span></div>
+                    <div style={{fontSize:10,color:C.muted,lineHeight:1.5}}>Escritura automática · 7 min sin filtro · sin backspace</div>
+                  </div>
+                  <div style={{fontSize:16,color:"#9B6AFF"}}>→</div>
+                </button>
+
+                {/* SOMBRA */}
+                <button onClick={()=>setActiveSession('sombra')} style={{background:C.card,border:`1px solid #FF2D7825`,borderRadius:10,padding:'14px 16px',cursor:'pointer',textAlign:'left',display:'flex',alignItems:'center',gap:14}}>
+                  <div style={{width:38,height:38,borderRadius:8,border:'1.5px solid #FF2D7850',display:'flex',alignItems:'center',justifyContent:'center',background:'#FF2D7810',flexShrink:0}}>
+                    <div style={{width:12,height:12,borderRadius:'50%',background:'#FF2D78',opacity:.8}}/>
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
+                      <span style={{fontSize:13,fontWeight:700,color:'#FF2D78'}}>SOMBRA</span>
+                      <span style={{fontSize:8,color:'#FF2D78',background:'#FF2D7815',border:'1px solid #FF2D7830',borderRadius:3,padding:'1px 5px'}}>5 preguntas</span>
+                    </div>
+                    <div style={{fontSize:10,color:C.muted,lineHeight:1.5}}>Confrontacion del bloqueo real · shadow work</div>
+                  </div>
+                  <div style={{fontSize:16,color:'#FF2D78'}}>→</div>
+                </button>
+
+
+                {/* CUERPO ORÁCULO */}
+                <button onClick={()=>setActiveSession('cuerpo')} style={{background:C.card,border:`1px solid #00CFFF25`,borderRadius:10,padding:'14px 16px',cursor:'pointer',textAlign:'left',display:'flex',alignItems:'center',gap:14}}>
+                  <div style={{width:38,height:38,borderRadius:8,border:'1.5px solid #00CFFF50',display:'flex',alignItems:'center',justifyContent:'center',background:'#00CFFF10',flexShrink:0}}>
+                    <div style={{width:12,height:12,borderRadius:'50%',background:'#00CFFF',opacity:.8}}/>
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
+                      <span style={{fontSize:13,fontWeight:700,color:'#00CFFF'}}>CUERPO ORÁCULO</span>
+                      <span style={{fontSize:8,color:'#00CFFF',background:'#00CFFF15',border:'1px solid #00CFFF30',borderRadius:3,padding:'1px 5px'}}>Somático</span>
+                    </div>
+                    <div style={{fontSize:10,color:C.muted,lineHeight:1.5}}>Decision desde el cuerpo · escaneo de 4 zonas</div>
+                  </div>
+                  <div style={{fontSize:16,color:'#00CFFF'}}>→</div>
+                </button>
+
+                {/* Coming soon */}
+                {[].map(([name,desc])=>(
+                  <div key={name} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:'14px 16px',opacity:.4,display:'flex',alignItems:'center',gap:14}}>
+                    <div style={{width:38,height:38,borderRadius:8,border:`1.5px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                      <div style={{width:10,height:10,borderRadius:'50%',background:C.border}}/>
+                    </div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,fontWeight:700,color:C.muted,marginBottom:3}}>{name}</div>
+                      <div style={{fontSize:10,color:C.muted}}>{desc}</div>
+                    </div>
+                    <div style={{fontSize:9,color:C.muted,border:`1px solid ${C.border}`,borderRadius:4,padding:'3px 7px'}}>PRÓXIMO</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ══════ ORACLE ══════ */}
+        {section==='oracle'&&(
+          <div style={{padding:'16px 18px'}} className="fade-in">
+            {/* Stats strip */}
+            <div style={{display:'flex',gap:8,marginBottom:16}}>
+              {[[total+'/91','FIB',C.gold],[LEVELS[Math.round(domains.reduce((s,d)=>s+d.level,0)/7)-1].name,'NIVEL',LEVELS[Math.round(domains.reduce((s,d)=>s+d.level,0)/7)-1].color],[moon.icon+' '+moon.name,'LUNA',moon.color],[vagoState?VAGO_DATA[vagoState].icon+''+VAGO_DATA[vagoState].label:'—','VAGO',vagoState?VAGO_DATA[vagoState].color:C.muted]].map(([v,l,col])=>(
+                <div key={l} style={{flex:1,background:C.card,border:`1px solid ${C.border}`,borderRadius:8,padding:'10px 8px',textAlign:'center'}}>
+                  <div style={{fontFamily:"'Syne',sans-serif",fontSize:13,fontWeight:800,color:col,lineHeight:1,marginBottom:3}}>{v}</div>
+                  <div style={{fontSize:8,color:C.muted,letterSpacing:'.08em'}}>{l}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* AI */}
+            <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:14,marginBottom:14}}>
+              <div style={{fontSize:8,color:C.purple,fontWeight:700,letterSpacing:'.15em',marginBottom:10}}>φ ORACLE — CONSULTA</div>
+              <input type="text" value={question} onChange={e=>setQuestion(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!oLoading&&getInsight()}
+                placeholder="Pregunta o déjalo vacío para análisis completo..."
+                style={{width:'100%',background:C.s1,border:`1px solid ${C.border}`,borderRadius:7,padding:'9px 12px',color:C.text,fontFamily:"'Space Mono',monospace",fontSize:11,marginBottom:10}}/>
+              <button onClick={getInsight} disabled={oLoading} style={{width:'100%',background:oLoading?C.border:C.purple,color:'#fff',border:'none',borderRadius:7,padding:'10px',fontFamily:"'Space Mono',monospace",fontSize:10,fontWeight:700,letterSpacing:'.08em',cursor:oLoading?'wait':'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+                {oLoading?<><span style={{display:'inline-block',animation:'spin .8s linear infinite'}}>◉</span> PROCESANDO...</>:'φ CONSULTAR'}
+              </button>
+              {insight&&<div className="fade-in" style={{marginTop:14,fontSize:12,color:'#BCBCD8',lineHeight:1.85,whiteSpace:'pre-wrap',borderTop:`1px solid ${C.border}`,paddingTop:14}}>{insight}</div>}
+            </div>
+
+            {/* Diario */}
+            <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:10,padding:14}}>
+              <div style={{fontSize:8,color:C.muted,letterSpacing:'.15em',marginBottom:10}}>DIARIO DE EVOLUCIÓN</div>
+              <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:10}}>
+                {domains.map(d=><button key={d.id} onClick={()=>setFocusDomId(d.id)} style={{padding:'4px 10px',borderRadius:4,fontSize:8,fontWeight:700,fontFamily:"'Space Mono',monospace",cursor:'pointer',background:focusDomId===d.id?d.color:'transparent',color:focusDomId===d.id?'#030308':d.color,border:`1px solid ${d.color}`}}>{d.name.toUpperCase()}</button>)}
+              </div>
+              <textarea value={note} onChange={e=>setNote(e.target.value)} rows={3} placeholder="¿Qué observas hoy?..."
+                style={{width:'100%',background:C.s1,border:`1px solid ${C.border}`,borderRadius:7,padding:'9px 12px',color:C.text,fontFamily:"'Space Mono',monospace",fontSize:11,marginBottom:8,lineHeight:1.6}}/>
+              <button onClick={addEntry} style={{background:C.mint,color:'#030308',border:'none',borderRadius:6,padding:'7px 16px',fontFamily:"'Space Mono',monospace",fontSize:9,fontWeight:700,cursor:'pointer',marginBottom:16}}>+ REGISTRAR</button>
+              {entries.length===0&&<div style={{textAlign:'center',color:C.muted,fontSize:10,padding:'16px 0'}}>Sin entradas aún.</div>}
+              {entries.slice(0,5).map(e=>(
+                <div key={e.id} className="fade-in" style={{borderLeft:`2px solid ${e.color}`,paddingLeft:10,marginBottom:12}}>
+                  <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                    <span style={{fontSize:9,color:e.color,fontWeight:700}}>{e.domainName.toUpperCase()} · {e.levelName}</span>
+                    <span style={{fontSize:8,color:C.muted}}>{e.date}</span>
+                  </div>
+                  <div style={{fontSize:11,color:'#9090B0',lineHeight:1.7}}>{e.note}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+      </div>
+
+      {/* BOTTOM NAV */}
+      <div style={{position:'fixed',bottom:0,left:0,right:0,background:C.s1,borderTop:`1px solid ${C.border}`,display:'flex',height:60,zIndex:100}}>
+        {[
+          ['hoy','◎','HOY'],
+          ['mapa','◈','MAPA'],
+          ['practica','◊','PRÁCTICA'],
+          ['oracle','φ','ORACLE'],
+        ].map(([id,icon,label])=>{
+          const active=section===id;
+          return(
+            <button key={id} onClick={()=>setSection(id)} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,background:'transparent',border:'none',cursor:'pointer',color:active?C.mint:C.muted,transition:'color .15s'}}>
+              <div style={{fontSize:active?18:15,fontWeight:700,lineHeight:1,transition:'font-size .15s'}}>{icon}</div>
+              <div style={{fontSize:8,letterSpacing:'.1em',fontFamily:"'Space Mono',monospace",fontWeight:active?700:400}}>{label}</div>
+              {active&&<div style={{position:'absolute',bottom:0,width:24,height:2,background:C.mint,borderRadius:1}}/>}
+            </button>
+          );
+        })}
+      </div>
+
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
