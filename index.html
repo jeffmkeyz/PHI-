@@ -986,15 +986,13 @@ function App(){
       )}
 
       {/* HEADER */}
-      <div className="safe-top" style={{background:C.s1,borderBottom:`1px solid ${C.border}`,padding:'12px 18px',display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
-        <div style={{fontFamily:"'Syne',sans-serif",fontSize:20,fontWeight:800,letterSpacing:'.05em',lineHeight:1}}>
-          PHI <span style={{color:C.mint}}>φ</span>
-        </div>
+      <div className="safe-top" style={{background:C.s1,borderBottom:`1px solid ${C.border}`,padding:'6px 18px',display:'flex',justifyContent:'flex-end',alignItems:'center',flexShrink:0,minHeight:32}}>
         <div style={{display:'flex',gap:14,alignItems:'center'}}>
-          {streak>0&&<div style={{textAlign:'center'}}><div style={{fontFamily:"'Syne',sans-serif",fontSize:16,fontWeight:800,color:C.pink,lineHeight:1}}>{streak}</div><div style={{fontSize:8,color:C.muted}}>RACHA</div></div>}
-          <div style={{textAlign:'right'}}>
-            <div style={{fontFamily:"'Syne',sans-serif",fontSize:20,fontWeight:800,color:C.gold,lineHeight:1}}>{total}<span style={{fontSize:10,color:C.muted,fontWeight:400}}>/91</span></div>
-            <div style={{fontSize:8,color:C.muted,letterSpacing:'.1em'}}>FIB · {pct}%</div>
+          {streak>0&&<div style={{display:'flex',alignItems:'center',gap:4}}><span style={{fontSize:10,color:C.pink,fontWeight:700}}>{streak}</span><span style={{fontSize:8,color:C.muted}}>RACHA</span></div>}
+          <div style={{display:'flex',alignItems:'center',gap:6}}>
+            <span style={{fontSize:10,fontWeight:700,color:C.gold}}>{total}<span style={{fontSize:9,color:C.muted,fontWeight:400}}>/91</span></span>
+            <span style={{fontSize:9,color:C.muted}}>·</span>
+            <span style={{fontSize:9,color:C.muted,letterSpacing:'.08em'}}>FIB {pct}%</span>
           </div>
         </div>
       </div>
