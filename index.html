@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
 <meta name="theme-color" content="#030308"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <title>PHI φ</title>
@@ -13,6 +13,8 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:#030308;color:#E8E8FF;font-family:'Space Mono',monospace;overscroll-behavior:none;-webkit-tap-highlight-color:transparent;}
+.safe-top{padding-top:env(safe-area-inset-top,0px);}
+.safe-bottom{padding-bottom:env(safe-area-inset-bottom,0px);}
 input[type=range]{-webkit-appearance:none;width:100%;height:3px;border-radius:2px;outline:none;cursor:pointer;}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#00F5A0;cursor:pointer;}
 input[type=time],input[type=text],textarea{outline:none;-webkit-appearance:none;}
@@ -984,7 +986,7 @@ function App(){
       )}
 
       {/* HEADER */}
-      <div style={{background:C.s1,borderBottom:`1px solid ${C.border}`,padding:'12px 18px',display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
+      <div className="safe-top" style={{background:C.s1,borderBottom:`1px solid ${C.border}`,padding:'12px 18px',display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
         <div style={{fontFamily:"'Syne',sans-serif",fontSize:20,fontWeight:800,letterSpacing:'.05em',lineHeight:1}}>
           PHI <span style={{color:C.mint}}>φ</span>
         </div>
@@ -1002,7 +1004,7 @@ function App(){
       </div>
 
       {/* CONTENT */}
-      <div style={{flex:1,overflowY:'auto',paddingBottom:70}}>
+      <div style={{flex:1,overflowY:'auto',paddingBottom:'calc(70px + env(safe-area-inset-bottom, 0px))'}}>
 
         {/* ══════ HOY ══════ */}
         {section==='hoy'&&(
@@ -1294,7 +1296,7 @@ function App(){
       </div>
 
       {/* BOTTOM NAV */}
-      <div style={{position:'fixed',bottom:0,left:0,right:0,background:C.s1,borderTop:`1px solid ${C.border}`,display:'flex',height:60,zIndex:100}}>
+      <div className="safe-bottom" style={{position:'fixed',bottom:0,left:0,right:0,background:C.s1,borderTop:`1px solid ${C.border}`,display:'flex',height:'calc(60px + env(safe-area-inset-bottom, 0px))',zIndex:100,alignItems:'flex-start'}}>
         {[
           ['hoy','◎','HOY'],
           ['mapa','◈','MAPA'],
